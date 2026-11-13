@@ -120,6 +120,26 @@ if [ -n "${OPENCLAW_DOCKER_APT_PACKAGES:-}" ]; then
     && rm -rf /var/lib/apt/lists/*
 fi
 
+# ── OpenAI-Sperre (Auftrag Markus, 05./07.11.2026) ─────────────────────────────
+# Markus' Regel: OpenAI-API-Key nur auf ausdrückliche Genehmigung verwenden.
+# Ohne diesen Guard:
+#   1. configure.js aktiviert den Built-in-Provider "openai" (Katalog zeigt
+#      OpenAI-Modelle als verfügbar).
+#   2. Der Gateway-Prozess erbt OPENAI_API_KEY und der ACPX-Codex-Wrapper
+#      (extensions/acpx/src/codex-auth-bridge.ts) schreibt den Key bei jedem
+#      ACP-Start nach codex-home/auth.json zurück.
+# Der Codex-Pfad nutzt den ChatGPT-Plan via OAuth (authProfiles.store) und
+# braucht keinen API-Key.
+#
+# Ausnahme: Wer den Key wirklich braucht, setzt beim Deployment
+# OPENCLAW_ALLOW_OPENAI_API_KEY=1 – das ist eine ausdrückliche Freigabe.
+if [ "${OPENCLAW_ALLOW_OPENAI_API_KEY:-0}" != "1" ]; then
+  unset OPENAI_API_KEY __OPENAI_API_KEY
+  echo "[entrypoint] OpenAI-API-Key entfernt (OpenAI-Sperre, Ausnahme via OPENCLAW_ALLOW_OPENAI_API_KEY=1)."
+else
+  echo "[entrypoint] WARNUNG: OPENAI_API_KEY ist trotz OpenAI-Sperre gesetzt."
+fi
+
 # ── Require at least one AI provider API key env var ─────────────────────────
 # Providers always read API keys from env vars, never from JSON config.
 HAS_PROVIDER=0
